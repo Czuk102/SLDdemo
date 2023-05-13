@@ -14,22 +14,23 @@ int ballvelx = 5;
 int ballvely = -5;
 
 int bkw = 800;
-int bkh= 600;
+int bkh = 600;
 int bkwmin = 0;
 int bkhmin = 0;
 
-int batx = bkw/2;
+int batx = bkw / 2;
 int baty = bkh - 30;
 int batSpeed = 10;
 
 int brickw = 80;
 int brickh = 35;
-int deleted_bricks = 20;
+int deleted_bricks = 0;
 int number_of_bricks = 21;
-SDL_Rect brickrect [3][7];
-void InitializeBrick(){
+SDL_Rect brickrect[3][7];
+
+void InitializeBrick() {
     for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 7 ; ++j) {
+        for (int j = 0; j < 7; ++j) {
             int x = 80 + j * 90;
             int y = 50 + i * 100;
             brickrect[i][j] = {x, y, brickw, brickh};
@@ -58,48 +59,63 @@ bool handle_events() {
     }
 //    if (key_state[SDL_SCANCODE_UP]) rect.y--;
 //    if (key_state[SDL_SCANCODE_DOWN]) rect.y++;
-    if (key_state[SDL_SCANCODE_LEFT] && batx > 0 ) batx -= batSpeed;
-    if (key_state[SDL_SCANCODE_RIGHT] && batx < bkw - 60 ) batx += batSpeed;
+    if (key_state[SDL_SCANCODE_LEFT] && batx > 0) batx -= batSpeed;
+    if (key_state[SDL_SCANCODE_RIGHT] && batx < bkw - 60) batx += batSpeed;
 
     return true;
 }
 
-void moveBall()
-{
+void moveBall() {
     ballx += ballvelx;
     bally += ballvely;
 }
 
-bool ball_brick_collision_detect(SDL_Rect  rect1, SDL_Rect rect2){
-    if (SDL_HasIntersection(&rect1,&rect2)){
+bool ball_brick_collision_detect(SDL_Rect rect1, SDL_Rect rect2) {
+    if (SDL_HasIntersection(&rect1, &rect2)) {
         return true;
-    }else
+    } else
         return false;
 }
-void ball_brick_collision(SDL_Rect ball){
+
+void ball_brick_collision(SDL_Rect ball) {
     bool a;
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 7; j++) {
             a = ball_brick_collision_detect(brickrect[i][j], ball);
-            if (a){
-                brickrect[i][j].x=3000;
-                ballvely= -ballvely;
+            if (a) {
+                brickrect[i][j].x = 3000;
+                ballvely = -ballvely;
                 deleted_bricks++;
-            }a = false;
+            }
+            a = false;
         }
 
     }
 }
-
-void ball_wall_colision(){
-    if (ballx < bkwmin || ballx > bkw - 30){
+void game_over(SDL_Renderer *renderer) {
+    SDL_Surface *over = SDL_LoadBMP("./assets/game_over.bmp");
+    SDL_RenderClear(renderer);
+//    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_Texture *wintexture = SDL_CreateTextureFromSurface(renderer, over);
+    SDL_Rect winrect = {300, 200, 200, 200};
+    SDL_RenderCopy(renderer, wintexture, nullptr, &winrect);
+    SDL_RenderPresent(renderer);
+    SDL_Delay(10000);
+    SDL_Quit();
+}
+void ball_wall_colision(SDL_Renderer* renderer) {
+    if (ballx < bkwmin || ballx > bkw - 30) {
         ballvelx = -ballvelx;
     }
-    if (bally < bkhmin || bally > bkh - 30){
+    if (bally < bkhmin) {
         ballvely = -ballvely;
     }
+    if(bally>bkh+60){
+        game_over(renderer);
+    }
     int ballscaling = 25;
-    if (bally + ballscaling >= baty && bally + ballscaling <= baty+30 && ballx + ballscaling >=batx && ballx + ballscaling <= batx + 70){
+    if (bally + ballscaling >= baty && bally + ballscaling <= baty + 30 && ballx + ballscaling >= batx &&
+        ballx + ballscaling <= batx + 70) {
         ballvely = -ballvely;
     }
 }
@@ -139,22 +155,26 @@ std::shared_ptr<SDL_Texture> load_texture(shared_ptr<SDL_Renderer> renderer, con
     return {texture, [](auto *p) { SDL_DestroyTexture(p); }};
 }
 
-void renderBricks(SDL_Renderer* renderer, SDL_Rect brick[][7]) {
+void renderBricks(SDL_Renderer *renderer, SDL_Rect brick[][7]) {
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 7; j++) {
             SDL_RenderFillRect(renderer, &brick[i][j]);
         }
     }
 }
-void win(SDL_Renderer* renderer){
-  SDL_Surface *win = SDL_LoadBMP("./assets/cup.bmp");
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-  SDL_Texture *wintexture = SDL_CreateTextureFromSurface(renderer,win);
-  SDL_Rect winrect = {300,200,200,200};
-    SDL_RenderCopy(renderer,wintexture, nullptr,&winrect);
+
+void win(SDL_Renderer *renderer) {
+    SDL_Surface *win = SDL_LoadBMP("./assets/cup.bmp");
+    SDL_RenderClear(renderer);
+//    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_Texture *wintexture = SDL_CreateTextureFromSurface(renderer, win);
+    SDL_Rect winrect = {300, 200, 200, 200};
+    SDL_RenderCopy(renderer, wintexture, nullptr, &winrect);
     SDL_RenderPresent(renderer);
     SDL_Delay(10000);
 }
+
+
 
 int main() {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -169,21 +189,22 @@ int main() {
         while (handle_events()) {
             if (!frame_dropped) {
 
-                SDL_Rect ballrect = {ballx,bally,20,30};
+                SDL_Rect ballrect = {ballx, bally, 20, 30};
                 moveBall();
                 SDL_Rect batrect = {batx, baty, 60, 30};
-                ball_wall_colision();
+                ball_wall_colision(renderer_p.get());
                 ball_brick_collision(ballrect);
-                if (deleted_bricks>= number_of_bricks){
+                if (deleted_bricks >= number_of_bricks) {
+                    SDL_SetRenderDrawColor(renderer_p.get(), 0, 0, 0, 255);
                     win(renderer_p.get());
                 }
 
                 SDL_RenderCopy(renderer_p.get(), background.get(), nullptr, nullptr);
-                SDL_RenderFillRect(renderer_p.get(),&ballrect );
-                SDL_RenderFillRect(renderer_p.get(),&batrect );
+                SDL_RenderFillRect(renderer_p.get(), &ballrect);
+                SDL_RenderFillRect(renderer_p.get(), &batrect);
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 7; j++) {
-                        SDL_RenderFillRect(renderer_p.get(),&brickrect[i][j]);
+                        SDL_RenderFillRect(renderer_p.get(), &brickrect[i][j]);
                     }
                 }
                 SDL_RenderPresent(renderer_p.get());
