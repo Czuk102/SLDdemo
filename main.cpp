@@ -344,10 +344,14 @@ int main()
 
                 ball_brick_collision(ballrect);
                 moveBall();
+                if (::abs(ballvely) < 1){
+                    ballvely = 3;
+                }
                 if (deleted_bricks >= number_of_bricks)
                 {
                     SDL_SetRenderDrawColor(renderer_p.get(), 0, 0, 0, 255);
                     win(renderer_p.get());
+                    SDL_Quit();
                 }
 
                 SDL_RenderCopy(renderer_p.get(), background.get(), nullptr, nullptr);
