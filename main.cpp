@@ -21,7 +21,7 @@ int bkwmin = 0;
 int bkhmin = 0;
 
 int batx = bkw / 2;
-int baty = bkh - 30;
+int baty = bkh - 10;
 int batSpeed = 10;
 
 int brickw = 80;
@@ -222,7 +222,7 @@ bool checkCollision(const SDL_Rect &rect1, const SDL_Rect &rect2)
 //    }
 //}
 
-void ball_wall_collision(SDL_Renderer *renderer)
+void ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
 {
     if (ballx < bkwmin || ballx > bkw - 30)
     {
@@ -237,7 +237,7 @@ void ball_wall_collision(SDL_Renderer *renderer)
         game_over(renderer);
     }
     int ballscaling = 30;
-    if (ballx + ballwidth >= batx && ballx <= batx + 60 && bally + ballheight >= baty && bally <= baty + 30)
+    if (SDL_HasIntersection(&ball,&bat))
 
     {
         // Calculate the distance between the center of the bat and the center of the ball
@@ -246,14 +246,14 @@ void ball_wall_collision(SDL_Renderer *renderer)
         float distance = ballCenterX - batCenterX;
 
         // Calculate the angle modifier based on the distance
-        float angleModifier = distance / 30; // Assuming the bat width is 70
+        float angleModifier = distance / 30;
 
         // Calculate the new angle of reflection
         float angle = atan2(ballvely, ballvelx) + angleModifier;
 
         // Calculate the new velocity components
         float speed = sqrt(ballvelx * ballvelx + ballvely * ballvely);
-        ballvelx = speed * cos(angle);
+        ballvelx = -speed * cos(angle);
         ballvely = -speed * sin(angle);
     }
 }
@@ -275,7 +275,7 @@ std::pair<std::shared_ptr<SDL_Window>, std::shared_ptr<SDL_Renderer>> create_con
         SDL_DestroyRenderer(renderer);
     });
     return {w, r};
-};
+}
 
 std::shared_ptr<SDL_Texture> load_texture(shared_ptr<SDL_Renderer> renderer, const std::string name)
 {
@@ -317,7 +317,7 @@ void win(SDL_Renderer *renderer)
     SDL_Rect winrect = {300, 200, 200, 200};
     SDL_RenderCopy(renderer, wintexture, nullptr, &winrect);
     SDL_RenderPresent(renderer);
-    SDL_Delay(10000);
+    SDL_Delay(3000);
 }
 
 int main()
@@ -338,9 +338,9 @@ int main()
 
                 SDL_Rect ballrect = {ballx, bally, ballwidth, ballheight};
 
-                SDL_Rect batrect = {batx, baty, 60, 30};
+                SDL_Rect batrect = {batx, baty, 60, 10};
 
-                ball_wall_collision(renderer_p.get());
+                ball_wall_collision(renderer_p.get(),ballrect,batrect);
 
                 ball_brick_collision(ballrect);
                 moveBall();
