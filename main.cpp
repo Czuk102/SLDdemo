@@ -6,6 +6,12 @@
 
 #include <SDL.h>
 
+Mix_Music* gMusic = NULL;
+
+//The sound effects that will be used
+Mix_Chunk* bounce = NULL;
+
+
 using namespace std;
 
 int ballx = 420;
@@ -42,6 +48,7 @@ void InitializeBrick()
         }
     }
 }
+
 
 bool handle_events()
 {
@@ -133,7 +140,7 @@ void ball_brick_collision(SDL_Rect& ball)
 
 
                     }
-
+                    Mix_PlayChannel( -1, bounce, 0 );
                     collisionDetected = true;
                     brick.x = 3000; // Remove brick from the game
                     deleted_bricks++;
@@ -162,65 +169,11 @@ void game_over(SDL_Renderer *renderer)
     SDL_Rect winrect = {300, 200, 200, 200};
     SDL_RenderCopy(renderer, wintexture, nullptr, &winrect);
     SDL_RenderPresent(renderer);
-    SDL_Delay(10000);
+    SDL_Delay(3000);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
 }
 
-bool checkCollision(const SDL_Rect &rect1, const SDL_Rect &rect2)
-{
-    return rect1.x < rect2.x + rect2.w &&
-           rect1.x + rect1.w > rect2.x &&
-           rect1.y < rect2.y + rect2.h &&
-           rect1.y + rect1.h > rect2.y;
-}
-//void ball_wall_collision(SDL_Renderer* renderer)
-//{
-//    if (ballx < bkwmin || ballx > bkw - 30)
-//    {
-//        ballvelx = -ballvelx;
-//    }
-//    if (bally < bkhmin)
-//    {
-//        ballvely = -ballvely;
-//    }
-//    if (bally > bkh + 60)
-//    {
-//        game_over(renderer);
-//    }
-//    int ballscaling = 25;
-//    if (bally + ballscaling >= baty && bally + ballscaling <= baty + 30 && ballx + ballscaling >= batx &&
-//        ballx + ballscaling <= batx + 70)
-//    {
-//        // Calculate the distance between the center of the bat and the center of the ball
-//        float batCenterX = batx + 35;
-//        float ballCenterX = ballx + ballwidth / 2;
-//        float distance = ballCenterX - batCenterX;
-//
-//        // Calculate the angle modifier based on the distance
-//        float angleModifier = distance / 35; // Assuming the bat width is 70
-//
-//        // Calculate the new angle of reflection
-//        float angle = atan2(ballvely, ballvelx) + angleModifier;
-//
-//        // Limit the angle within a specific range (e.g., -45 to 45 degrees)
-//        float minAngle = -M_PI / 4; // -45 degrees in radians
-//        float maxAngle = M_PI / 4;  // 45 degrees in radians
-//        angle = std::max(minAngle, std::min(maxAngle, angle));
-//
-//        // Calculate the new velocity components
-//        float speed = sqrt(ballvelx * ballvelx + ballvely * ballvely);
-//        ballvelx = -speed * cos(angle);
-//        ballvely = -speed * sin(angle);
-//    }
-//
-//    // Check if the absolute value of ballvelx is too low and adjust it to maintain a minimum speed
-//    float minSpeed = 2.0; // Adjust this value as needed
-//    if (std::abs(ballvelx) < minSpeed)
-//    {
-//        // Adjust the sign of ballvelx to maintain the previous direction
-//        ballvelx = -minSpeed * (ballvelx >= 0 ? 1 : -1);
-//    }
-//}
 
 void ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
 {
@@ -240,6 +193,7 @@ void ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
     if (SDL_HasIntersection(&ball,&bat))
 
     {
+        Mix_PlayChannel( -1, bounce, 0 );
         // Calculate the distance between the center of the bat and the center of the ball
         float batCenterX = batx + 30;
         float ballCenterX = ballx + ballwidth / 2;
@@ -319,6 +273,11 @@ void win(SDL_Renderer *renderer)
     SDL_RenderPresent(renderer);
     SDL_Delay(3000);
 }
+void close(){
+    Mix_FreeChunk( bounce );
+    bounce = NULL;
+    Mix_Quit();
+}
 
 int main()
 {
@@ -328,6 +287,23 @@ int main()
         SDL_SetRenderDrawColor(renderer_p.get(), 255, 100, 50, 255);
         InitializeBrick();
 
+        //SDL init
+
+        {bool success = true;
+            if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+                printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
+                success = false;
+            }
+            if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+                printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+                success = false;
+            }
+            bounce = Mix_LoadWAV("./assets/tyry.mp3");
+            if (bounce == NULL) {
+                printf("Failed to load scratch sound effect! SDL_mixer Error: %s\n", Mix_GetError());
+                success = false;
+            }
+        }
         auto background = load_texture(renderer_p, "bg_space_seamless.bmp");
         auto prev_tick = SDL_GetTicks();
         int frame_dropped = 0;
