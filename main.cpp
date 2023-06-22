@@ -3,21 +3,19 @@
 #include <SDL_mixer.h>
 #include <cmath>
 #define SDL_MAIN_HANDLED
-
 #include <SDL.h>
 
-Mix_Music* gMusic = NULL;
+Mix_Music* gMusic = nullptr;
+Mix_Chunk* bounce = nullptr;
 
-//The sound effects that will be used
-Mix_Chunk* bounce = NULL;
-
+void quit();
 
 using namespace std;
 
-int ballx = 420;
-int bally = 500;
-float ballvelx = 7;
-float ballvely = -7;
+int ballX = 420;
+int ballY = 500;
+float ballVelocitX = 7;
+float ballVelocityY = -7;
 int ballwidth = 30;
 int ballheight = 30;
 
@@ -26,8 +24,8 @@ int bkh = 600;
 int bkwmin = 0;
 int bkhmin = 0;
 
-int batx = bkw / 2;
-int baty = bkh - 10;
+int batX = bkw / 2;
+int batY = bkh - 10;
 int batSpeed = 10;
 
 int brickw = 80;
@@ -58,9 +56,11 @@ bool handle_events()
     {
         switch (e.type)
         {
-            case SDL_QUIT:
+            case SDL_QUIT:{}
+                std::cout << "lag..." << std::endl;
                 return false;
-                break;
+
+
             case SDL_KEYDOWN:
                 if (e.key.keysym.sym == SDLK_q)
                 {
@@ -74,18 +74,18 @@ bool handle_events()
                 break;
         }
     }
-    if (key_state[SDL_SCANCODE_LEFT] && batx > 0)
-        batx -= batSpeed;
-    if (key_state[SDL_SCANCODE_RIGHT] && batx < bkw - 60)
-        batx += batSpeed;
+    if (key_state[SDL_SCANCODE_LEFT] && batX > 0)
+        batX -= batSpeed;
+    if (key_state[SDL_SCANCODE_RIGHT] && batX < bkw - 60)
+        batX += batSpeed;
 
     return true;
 }
 
 void moveBall()
 {
-    ballx += ballvelx;
-    bally += ballvely;
+    ballX += ballVelocitX;
+    ballY += ballVelocityY;
 }
 
 bool ball_brick_collision_detect(SDL_Rect &rect1, SDL_Rect &rect2)
@@ -129,14 +129,14 @@ void ball_brick_collision(SDL_Rect& ball)
                     if (absDistX >= absDistY)
                     {
                         // Horizontal collision
-                        ballvelx *= -1; // Invert horizontal velocity
+                        ballVelocitX *= -1; // Invert horizontal velocity
 
 
                     }
                     else
                     {
                         // Vertical collision
-                        ballvely *= -1; // Invert vertical velocity
+                        ballVelocityY *= -1; // Invert vertical velocity
 
 
                     }
@@ -154,10 +154,12 @@ void ball_brick_collision(SDL_Rect& ball)
     }
 }
 
-
-
-
-
+void closeSound(){
+    Mix_FreeChunk( bounce );
+    bounce = nullptr;
+    Mix_Quit();
+    std::cout<<"Destroy sound\n";
+}
 
 
 void game_over(SDL_Renderer *renderer)
@@ -170,46 +172,47 @@ void game_over(SDL_Renderer *renderer)
     SDL_RenderCopy(renderer, wintexture, nullptr, &winrect);
     SDL_RenderPresent(renderer);
     SDL_Delay(3000);
-    SDL_DestroyRenderer(renderer);
     SDL_Quit();
 }
 
 
-void ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
+bool ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
 {
-    if (ballx < bkwmin || ballx > bkw - 30)
+    if (ballX < bkwmin || ballX > bkw - 30)
     {
-        ballvelx = -ballvelx;
+        ballVelocitX = -ballVelocitX;
     }
-    if (bally < bkhmin)
+    if (ballY < bkhmin)
     {
-        ballvely = -ballvely;
+        ballVelocityY = -ballVelocityY;
     }
-    if (bally > bkh + 60)
+    if (ballY > bkh + 60)
     {
         game_over(renderer);
+        return false;
     }
-    int ballscaling = 30;
+
     if (SDL_HasIntersection(&ball,&bat))
 
     {
         Mix_PlayChannel( -1, bounce, 0 );
         // Calculate the distance between the center of the bat and the center of the ball
-        float batCenterX = batx + 30;
-        float ballCenterX = ballx + ballwidth / 2;
+        float batCenterX = batX + 30;
+        float ballCenterX = ballX + ballwidth / 2;
         float distance = ballCenterX - batCenterX;
 
         // Calculate the angle modifier based on the distance
         float angleModifier = distance / 30;
 
         // Calculate the new angle of reflection
-        float angle = atan2(ballvely, ballvelx) + angleModifier;
+        float angle = atan2(ballVelocityY, ballVelocitX) + angleModifier;
 
         // Calculate the new velocity components
-        float speed = sqrt(ballvelx * ballvelx + ballvely * ballvely);
-        ballvelx = -speed * cos(angle);
-        ballvely = -speed * sin(angle);
+        float speed = sqrt(ballVelocitX * ballVelocitX + ballVelocityY * ballVelocityY);
+        ballVelocitX = -speed * cos(angle);
+        ballVelocityY = -speed * sin(angle);
     }
+    return true;
 }
 
 std::pair<std::shared_ptr<SDL_Window>, std::shared_ptr<SDL_Renderer>> create_context()
@@ -273,10 +276,15 @@ void win(SDL_Renderer *renderer)
     SDL_RenderPresent(renderer);
     SDL_Delay(3000);
 }
-void close(){
-    Mix_FreeChunk( bounce );
-    bounce = NULL;
-    Mix_Quit();
+
+void quit(){
+    SDL_Event event;
+    event.type = SDL_KEYDOWN;
+    event.key.keysym.sym = SDLK_ESCAPE;
+    event.key.keysym.mod = 0;
+    event.key.repeat = 0;
+
+    SDL_PushEvent(&event);
 }
 
 int main()
@@ -287,7 +295,7 @@ int main()
         SDL_SetRenderDrawColor(renderer_p.get(), 255, 100, 50, 255);
         InitializeBrick();
 
-        //SDL init
+        //Sound init
 
         {bool success = true;
             if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -307,27 +315,27 @@ int main()
         auto background = load_texture(renderer_p, "bg_space_seamless.bmp");
         auto prev_tick = SDL_GetTicks();
         int frame_dropped = 0;
+        int running = true;
         while (handle_events())
         {
             if (!frame_dropped)
             {
 
-                SDL_Rect ballrect = {ballx, bally, ballwidth, ballheight};
-
-                SDL_Rect batrect = {batx, baty, 60, 10};
-
-                ball_wall_collision(renderer_p.get(),ballrect,batrect);
-
+                SDL_Rect ballrect = {ballX, ballY, ballwidth, ballheight};
+                SDL_Rect batrect = {batX, batY, 60, 10};
+                running  = ball_wall_collision(renderer_p.get(),ballrect,batrect);
                 ball_brick_collision(ballrect);
+
                 moveBall();
-                if (::abs(ballvely) < 1){
-                    ballvely = 3;
+
+                if (::abs(ballVelocityY) < 1){
+                    ballVelocityY = 3;
                 }
                 if (deleted_bricks >= number_of_bricks)
                 {
                     SDL_SetRenderDrawColor(renderer_p.get(), 0, 0, 0, 255);
                     win(renderer_p.get());
-                    SDL_Quit();
+                    break;
                 }
 
                 SDL_RenderCopy(renderer_p.get(), background.get(), nullptr, nullptr);
@@ -353,8 +361,15 @@ int main()
                     frame_dropped = 1;
                 }
                 prev_tick += 33;
+
+
             }
+            if (!running){
+                break;
+            }
+
         }
+        closeSound();
         SDL_Quit();
 
         return 0;
