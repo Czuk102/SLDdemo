@@ -82,7 +82,7 @@ bool handle_events()
     return true;
 }
 
-void moveBall()
+void updateBallPosition()
 {
     ballX += ballVelocitX;
     ballY += ballVelocityY;
@@ -106,8 +106,7 @@ void ball_brick_collision(SDL_Rect& ball)
         for (int j = 0; j < 7; j++)
         {
             SDL_Rect& brick = brickrect[i][j];
-            if (SDL_HasIntersection(&brick, &ball))
-            {
+
                 int ballCenterX = ball.x + ball.w / 2;
                 int ballCenterY = ball.y + ball.h / 2;
 
@@ -149,7 +148,7 @@ void ball_brick_collision(SDL_Rect& ball)
                     break;
                 }
 
-            }
+
         }
     }
 }
@@ -191,7 +190,7 @@ bool ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
         game_over(renderer);
         return false;
     }
-
+    // Ball bat collision
     if (SDL_HasIntersection(&ball,&bat))
 
     {
@@ -207,7 +206,7 @@ bool ball_wall_collision(SDL_Renderer *renderer,SDL_Rect &ball, SDL_Rect &bat)
         // Calculate the new angle of reflection
         float angle = atan2(ballVelocityY, ballVelocitX) + angleModifier;
 
-        // Calculate the new velocity components
+        // Calculate the new velocity
         float speed = sqrt(ballVelocitX * ballVelocitX + ballVelocityY * ballVelocityY);
         ballVelocitX = -speed * cos(angle);
         ballVelocityY = -speed * sin(angle);
@@ -326,7 +325,7 @@ int main()
                 running  = ball_wall_collision(renderer_p.get(),ballrect,batrect);
                 ball_brick_collision(ballrect);
 
-                moveBall();
+                updateBallPosition();
 
                 if (::abs(ballVelocityY) < 1){
                     ballVelocityY = 3;
